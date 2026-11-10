@@ -1,0 +1,12 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "singleQuote": true,
+  "printWidth": 100,
+  "ignorePatterns": [
+    "build/**",
+    "functions/lib/**",
+    "functions/vendor/**",
+    "yarn.lock",
+    "functions/yarn.lock"
+  ]
+}

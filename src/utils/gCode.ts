@@ -1,90 +1,49 @@
+import { collection, doc, onSnapshot, setDoc, type QuerySnapshot } from 'firebase/firestore';
 import firebaseApp from '../config/firebase';
-import {
-    getFirestore,
-    collection,
-    getDocs,
-    QuerySnapshot,
-    setDoc,
-    doc,
-    query,
-    onSnapshot,
-} from 'firebase/firestore';
-const __DEV__ = process.env.NODE_ENV !== 'production';
-console.log(`__DEV__: ${__DEV__}`);
-const BASE_URL = __DEV__
-    ? 'http://localhost:5000/poop-rinter/us-central1/app'
-    : 'https://us-central1-poop-rinter.cloudfunctions.net/app';
-const TEXT_TO_SVG_URL = `${BASE_URL}/textToSVG/`;
-const HERSHEYS_URL = `${BASE_URL}/hersheySVG/`;
+import { db } from '../config/firestore';
 
-const LETTERS_REF = collection(getFirestore(), 'letters');
+export type LetterCodes = Record<string, string>;
+const projectId = firebaseApp.options.projectId;
+const baseUrl = (
+  import.meta.env.VITE_FUNCTIONS_URL ||
+  (import.meta.env.DEV
+    ? `http://127.0.0.1:5001/${projectId}/us-central1/app`
+    : `https://us-central1-${projectId}.cloudfunctions.net/app`)
+).replace(/\/$/, '');
+const lettersRef = collection(db, 'letters');
 
-const mapLettersToObject = (snap: QuerySnapshot) => {
-    let codedLetters: any = {};
-    snap.forEach((doc: any) => (codedLetters[doc.id.toUpperCase()] = doc.data().code));
-    return codedLetters;
-};
+function mapLetters(snapshot: QuerySnapshot): LetterCodes {
+  const letters: LetterCodes = {};
+  snapshot.forEach((document) => {
+    const code: unknown = document.data().code;
+    if (typeof code === 'string') letters[document.id.toUpperCase()] = code;
+  });
+  return letters;
+}
 
-export const textToSVG = async (text: string): Promise<any> => {
-    try {
-        const res = await fetch(TEXT_TO_SVG_URL, {
-            method: 'POST',
-            body: JSON.stringify({ text: text }),
-        });
-        if (res) {
-            const text = res.text();
-            console.log(typeof text);
-            console.log(JSON.stringify(text));
-            return text;
-        } else {
-            const err = `Error getting SVG from server`;
-            console.error(err);
-            return err;
-        }
-    } catch (error) {
-        console.error(error);
-        return error;
-    }
-};
-
-export const hersheysSVG = async (text: string): Promise<any> => {
-    try {
-        const res = await fetch(HERSHEYS_URL, {
-            method: 'POST',
-            body: JSON.stringify({ text: text }),
-        });
-        if (res) {
-            const text = res.text();
-            console.log(typeof text);
-            console.log(JSON.stringify(text));
-            return text;
-        } else {
-            const err = `Error getting SVG from server`;
-            console.error(err);
-            return err;
-        }
-    } catch (error) {
-        console.error(error);
-        return error;
-    }
-};
-
-export const generateGCode = async (text: string) => {
-    const textToGenerate = text.toUpperCase();
-    let Gcode = '';
-    let codedLetters: any = {};
-    await getDocs(LETTERS_REF).then((snap) => (codedLetters = mapLettersToObject(snap)));
-
-    for (let index = 0; index < textToGenerate.length; index++) {
-        const char = textToGenerate.charAt(index);
-        Gcode += codedLetters[char];
-    }
-
-    return Gcode;
-};
-
-export const saveNewGCode = (letter: string, newgcode: string) =>
-    setDoc(doc(getFirestore(), `letters/${letter}`), { code: newgcode });
-
-export const getAllLetters = (onUpdate: (value: any) => void) =>
-    onSnapshot(query(LETTERS_REF), (snap) => onUpdate(mapLettersToObject(snap)), console.error);
+export async function textToSVG(text: string): Promise<string> {
+  if (!text.trim() || text.length > 2000)
+    throw new Error('Text must contain 1 to 2,000 characters.');
+  const response = await fetch(`${baseUrl}/textToSVG`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!response.ok)
+    throw new Error(`SVG generation failed (${response.status}). Please try again.`);
+  const svg = await response.text();
+  if (!/^\s*(?:<\?xml[^>]*>\s*)?<svg[\s>]/i.test(svg))
+    throw new Error('The server returned an invalid SVG.');
+  return svg;
+}
+export function saveNewGCode(letter: string, code: string) {
+  const key = letter.toUpperCase();
+  if (Array.from(key).length !== 1 || key === '/' || key === '.' || !code.trim())
+    throw new Error('Enter one letter and its G-Code.');
+  if (code.length > 100_000) throw new Error('G-Code must be 100,000 characters or fewer.');
+  return setDoc(doc(db, 'letters', key), { code });
+}
+export const getAllLetters = (
+  onUpdate: (letters: LetterCodes) => void,
+  onError: (error: Error) => void,
+) => onSnapshot(lettersRef, (snapshot) => onUpdate(mapLetters(snapshot)), onError);

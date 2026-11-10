@@ -1,93 +1,106 @@
-# g-code-generator
+# Pooprinter
 
-generates G Code from text string
+Generate downloadable SVG lettering from text and manage a shared library of letter G-code.
+The app uses React, MUI, Firebase Authentication/Firestore, and a small Firebase HTTP service.
 
-# React Most Wanted
+## Local development
 
-[![License][license-image]][license-url]
-[![Code Style][code-style-image]][code-style-url]
+Use Node **24.22.2** (`nvm use`) and Corepack. The function targets **Node 22** and explicitly
+keeps its first-generation API, preserving the existing `/app` endpoint generation.
+This does not establish the deployed runtime.
 
-I like `short` README's so here we go :sunglasses:
-
-## How to start?
-
-Just run this command:
-
-```js
-npx create-react-app test-app --scripts-version rmw-react-scripts
+```sh
+corepack enable
+yarn install --immutable
+yarn --cwd functions install --immutable
+yarn hooks:install
+cp .env.example .env.local
 ```
 
-## I rather checkout the DEMO first. Where is it?
+Start Firebase emulators in one terminal, then the app in another:
 
-Here you go [DEMO](https://www.react-most-wanted.com). The DEMO is just a DEMO. It has no real purpose "to do" some usefull stuff. Just to show you what your project could look like.
+```sh
+yarn emulators
+yarn dev
+```
 
-## What is this?
+The app runs at <http://localhost:3002>. Emulators need Java 21 or newer. Local functions
+should also be exercised with Node 22 before deploying. The example environment uses the
+isolated `demo-poorinter` project; no production credentials or data are needed.
 
-React Most Wanted is a react Starter Kit based on [Create React App](https://github.com/facebookincubator/create-react-app) and [Material-UI](https://material-ui.com/) that uses [Firebase](https://firebase.google.com/).
+Without `.env.local`, the app retains the existing project's public Firebase configuration.
+`VITE_*` values are public browser configuration, not secrets. Never put server credentials
+in them. `VITE_FUNCTIONS_URL` overrides the SVG service URL; otherwise the URL follows the
+configured Firebase project, using the local functions emulator during development.
 
-## Why should I use it?
+## Checks
 
-Check this out:
+```sh
+yarn check          # format, lint, type checks, smoke tests, production builds
+yarn test:rules     # two local Firebase emulator rules tests; requires Java 21+
+yarn fmt           # format source and configuration
+```
 
--   it is built with CRA and even if you use this Starter Kit your CRA scripts will work properly. You will be able to make every CRA update as if you have started with it. We don't eject anyone from CRA :smile:
--   it is based on a library [rmw-shell](https://github.com/TarikHuber/rmw-shell) witch keeps your project up to date when we make bugfixes or add new features. It is like a `shell` for your project where the hard work is already done for you.
--   there is a simple script to start a fresh project without forking anything `npx create-react-app test-app --scripts-version rmw-react-scripts`
--   it has all "MOST WANTED" features built in. That is where the name comes from :wink: We come to the features a little bit later.
--   it is customizable
--   it uses Firebase :smile:
--   it is a Best Practice Project PWA (Progressive Web Application)
--   you will love it once you start using it :smile:
+The small smoke suite checks signed-out rendering, the signed-in letters route, SVG
+success/failure, and both real server renderers against the compiled function artifact.
+Auth and Firestore are mocked in UI tests. Rules tests run only against a demo project.
 
-## What are those "Most Wanted" features?
+Install the versioned Git hooks once per checkout with `yarn hooks:install`:
 
-Let's take a look at some of them:
+- **Pre-commit:** formatting and lint checks.
+- **Pre-push:** the full `yarn check` (including production builds).
+- **CI:** one cached job running type checks and smoke tests. No emulator, browser matrix,
+  deployment, or repeated production frontend build in CI.
 
--   Material UI
--   code splitting
--   redux implementation
--   firebase to redux sync
--   authentication
--   authorisation
--   push notifications UI integration
--   theming
--   internationalisation
--   built in CI (Continuous Integration)
--   built in CD (Continuous Deployment)
--   realtime forms (isn't that awesome :smile: )
--   ... and a lot more I just can't remember
+Both package directories use pinned Yarn 4 with `node_modules` and independent lockfiles.
+The function remains independently installable because Firebase builds that subtree.
+Backend HTTP tests use Node's test runner; frontend rendering tests use Vitest and Testing Library.
+The pinned Firebase CLI runs on demand through `yarn firebase`; its large dependency tree
+is excluded from routine installs and CI.
 
-# Is there more in depth information about this project?
+## Deployment and remaining validation
 
-Sure. It is a project made over years and still fully supported. Reason for that is that we use it in our company for production projects so it has to work for at least some years. Good enough for the JavaScript ecosystem :wink:
+```sh
+yarn deploy                       # hosting, existing poop-rinter project
+yarn deploy:functions              # HTTP service, existing project
+```
 
-The information you are seeking is scattered over some Medium articles written by me at the time I was working on solving some problems in this project. So they should explain some core parts in detail:
+Deployment is a separate, explicit action. Existing `default`, `dev`, and `prod` aliases
+all refer to the same production Firebase project; the `dev` alias is not a sandbox.
+Hosting still serves `build/`, with SPA rewrites for `/letters`.
 
--   [Beyond create-react-app](https://codeburst.io/beyond-create-react-app-cra-a2063196a124)
--   [Organising your Firebase CLoud Functions](https://codeburst.io/organizing-your-firebase-cloud-functions-67dc17b3b0da)
--   [Firekit concepts to sync Firebase and redux](https://codeburst.io/firekit-concepts-to-sync-firebase-and-redux-606a1e3e50d6)
--   [Firebase and react Continuous Deployment](https://codeburst.io/firebase-and-react-continuous-deployment-2e6d81f0b6a1)
--   [Redux simple values](https://codeburst.io/redux-simple-values-7712694f311)
--   [React Most Wanted](https://medium.com/@tarikhuber/react-most-wanted-d4e916782c2e)
+Google, Facebook, Twitter, GitHub, email/password, and phone sign-in are retained. OAuth
+providers, authorized domains, and SMS/reCAPTCHA must be configured in Firebase Console.
+Local mocks and emulators do not establish that real providers or deployed endpoints work.
 
-# How can I make it MY project?
+Repository rules now permit authenticated access to `/letters` with bounded document
+validation, and require an existing admin for Realtime Database admin writes. Deploying
+hosting/functions does not deploy rules. Review and deploy rules separately when ready:
 
-We have you covered. Here is a [codelab](https://start-with-rmw.web.app/#0) that will walk you trough the whole process of creating a new project and deploying it.
+```sh
+yarn firebase deploy --project poop-rinter --only firestore:rules,database
+```
 
-## I have a problem. Where to ask?
+Legacy starter chat/account/admin UI, unused locales, push messaging, Redux, CRA, TSLint,
+JSS, and old polyfills were removed. Existing data and deployed services were not deleted.
+Fonts have one source directory, copied into the compiled function; renderer provenance
+and licensing are recorded in [functions/src/fonts/README.md](functions/src/fonts/README.md).
 
-It depends on your problem. If you have a question please join our [gitter room](https://gitter.im/react-most-wanted/Lobby). If you notice an issue in the project don't hesitate to fill out an issue report to this project [here](https://github.com/TarikHuber/react-most-wanted/issues).
+## Dependency maintenance
 
-## License
+Firebase 13.2 still constrains its Node Firestore transport to gRPC 1.9. A root resolution
+selects patched `@grpc/grpc-js` 1.14.7 for Firestore until Firebase updates that constraint
+([advisory](https://github.com/advisories/GHSA-m9gg-hp2v-232j)). The local
+rules tests exercise the Node client with this override. Compatible lockfile refreshes
+also pick up patched protobuf and YAML packages. Upstream OpenTelemetry and DOMException
+polyfill deprecation notices remain in SDK dependencies.
 
-MIT
+## Tooling references
 
-[logo-image]: https://www.react-most-wanted.com/favicon-32x32.png
-[logo-url]: https://github.com/TarikHuber/react-most-wanted/blob/master/README.md
-[travis-image]: https://travis-ci.org/TarikHuber/react-most-wanted.svg?branch=master
-[travis-url]: https://travis-ci.org/TarikHuber/react-most-wanted
-[daviddm-image]: https://img.shields.io/david/TarikHuber/react-most-wanted.svg?style=flat-square
-[daviddm-url]: https://david-dm.org/TarikHuber/react-most-wanted
-[license-image]: https://img.shields.io/npm/l/express.svg
-[license-url]: https://github.com/TarikHuber/react-most-wanted/master/LICENSE
-[code-style-image]: https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square
-[code-style-url]: https://github.com/prettier/prettier
+- [Vite 8 and the Rust-based Rolldown/Oxc toolchain](https://vite.dev/blog/announcing-vite8)
+- [TypeScript 7 migration and removed compiler options](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/)
+- [Yarn modern migration with node_modules](https://yarnpkg.com/migration/guide)
+- [Oxlint type-aware linting](https://oxc.rs/docs/guide/usage/linter/type-aware)
+- [Oxfmt](https://oxc.rs/docs/guide/usage/formatter.html)
+- [MUI 9 migration](https://mui.com/material-ui/migration/upgrade-to-v9/)
+- [Firebase function dependencies and Yarn](https://firebase.google.com/docs/functions/handle-dependencies)

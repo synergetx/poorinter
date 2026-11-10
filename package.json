@@ -1,69 +1,63 @@
 {
-    "name": "poorinter",
-    "version": "0.1.0",
-    "private": true,
-    "resolutions": {
-        "css-select": "^4"
-    },
-    "dependencies": {
-        "@formatjs/intl-relativetimeformat": "^11.4.11",
-        "@material-ui/core": "4.x",
-        "@material-ui/icons": "4.x",
-        "@material-ui/pickers": "3.3.11",
-        "@material-ui/styles": "4.x",
-        "firebase": "10.x",
-        "intl": "1.x",
-        "intl-locales-supported": "1.x",
-        "intl-pluralrules": "1.x",
-        "react": "17.x",
-        "react-dom": "17.x",
-        "react-helmet": "5.x",
-        "react-intl": "5.x",
-        "react-loadable": "5.x",
-        "react-router": "5.x",
-        "react-router-dom": "5.x",
-        "react-scripts": "^5.1.0-next.26",
-        "redux": "4.2.1",
-        "redux-form": "8.x",
-        "redux-form-material-ui": "5.0.0-beta.3",
-        "redux-logger": "3.x",
-        "redux-persist": "6.x",
-        "redux-thunk": "2.x",
-        "rmw-shell": "11.x",
-        "source-map-explorer": "2.x"
-    },
-    "devDependencies": {
-        "@types/node": "^18.0.0",
-        "@types/react": "^17.0.0",
-        "@types/react-dom": "^17.0.0",
-        "@types/react-helmet": "^5.0.14",
-        "@types/react-router-dom": "^5.1.2",
-        "typescript": "^5.8.3"
-    },
-    "scripts": {
-        "check": "npm-check -s -u",
-        "analyze": "source-map-explorer build/static/js/main.*",
-        "start": "PORT=3002 react-scripts start",
-        "standard": "standard src/**/*.js",
-        "build": "react-scripts build",
-        "test": "react-scripts test",
-        "eject": "react-scripts eject",
-        "deploy": "yarn build && firebase use poop-rinter && firebase deploy --only hosting"
-    },
-    "eslintConfig": {
-        "extends": "react-app"
-    },
-    "browserslist": {
-        "production": [
-            ">0.2%",
-            "not dead",
-            "not op_mini all"
-        ],
-        "development": [
-            "last 1 chrome version",
-            "last 1 firefox version",
-            "last 1 safari version"
-        ]
-    },
-    "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
+  "name": "poorinter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "vite --port 3002",
+    "dev": "vite --port 3002",
+    "build": "yarn typecheck && yarn build:bundle",
+    "preview": "vite preview --port 3002",
+    "typecheck": "tsc --noEmit",
+    "lint": "oxlint --type-aware --deny-warnings src test *.ts && yarn --cwd functions lint",
+    "fmt": "oxfmt .",
+    "fmt:check": "oxfmt --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:rules": "yarn firebase emulators:exec --project demo-poorinter --only firestore,database \"vitest run --config vitest.rules.config.ts\"",
+    "check:smoke": "yarn typecheck && yarn test && yarn --cwd functions typecheck && yarn --cwd functions test",
+    "check": "yarn fmt:check && yarn lint && yarn check:smoke && yarn build:bundle",
+    "hooks:install": "git config core.hooksPath .githooks",
+    "deploy": "yarn build && yarn firebase deploy --project poop-rinter --only hosting",
+    "build:bundle": "vite build",
+    "emulators": "yarn --cwd functions build && yarn firebase emulators:start --project demo-poorinter --only auth,firestore,database,functions",
+    "firebase": "yarn dlx firebase-tools@15.35.0",
+    "deploy:functions": "yarn firebase deploy --project poop-rinter --only functions",
+    "functions:shell": "yarn --cwd functions build && yarn firebase functions:shell --project poop-rinter",
+    "functions:logs": "yarn firebase functions:log --project poop-rinter"
+  },
+  "dependencies": {
+    "@emotion/react": "11.14.0",
+    "@emotion/styled": "11.14.1",
+    "@mui/material": "9.5.0",
+    "firebase": "13.2.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "react-router": "8.5.1"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "6.0.0",
+    "@testing-library/dom": "10.4.2",
+    "@testing-library/jest-dom": "7.0.1",
+    "@testing-library/react": "16.3.3",
+    "@testing-library/user-event": "14.6.9",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.3.0",
+    "jsdom": "31.0.0",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
+    "oxlint-tsgolint": "7.0.2006",
+    "typescript": "7.0.2",
+    "vite": "8.3.7",
+    "vitest": "5.1.0"
+  },
+  "resolutions": {
+    "@firebase/firestore/@grpc/grpc-js": "1.14.7"
+  },
+  "engines": {
+    "node": ">=24.22.2 <25"
+  },
+  "packageManager": "yarn@4.18.1"
 }

@@ -3,7 +3,7 @@
     "admins": {
       ".read": "auth != null",
       "$uid": {
-        ".write": "auth != null || root.child('admins/'+auth.uid).exists()"
+        ".write": "auth != null && root.child('admins/'+auth.uid).exists()"
       }
     },
     "predefined_chat_messages": {
@@ -76,13 +76,9 @@
     },
     "public_tasks": {
       ".read": "auth != null",
-      ".indexOn": [
-        "userId"
-      ],
+      ".indexOn": ["userId"],
       "$tid": {
-        ".indexOn": [
-          "userId"
-        ],
+        ".indexOn": ["userId"],
         ".write": "data.child('userId').val() === auth.uid || newData.child('userId').val() === auth.uid"
       }
     },

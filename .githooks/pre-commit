@@ -1,0 +1,4 @@
+#!/bin/sh
+set -eu
+corepack yarn fmt:check
+corepack yarn lint

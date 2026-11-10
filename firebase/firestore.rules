@@ -1,21 +1,21 @@
 service cloud.firestore {
   match /databases/{database}/documents {
-  
+
     /// FUNCTIONS START ///
 
     //Checks if user is signed in
     function isSignedIn() {
-      return request.auth.uid != null;
+      return request.auth != null;
     }
 
     //Checks if user has admin rights
     function isAdmin() {
-      return exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      return exists(/databases/$(database)/documents/admins/$(request.auth.uid));
     }
 
     //Checks if user has a specific grant
     function hasGrant(grant) {
-      return  get(/databases/$(database)/documents/user_grants/$(request.auth.uid)).data[grant]==true
+      return get(/databases/$(database)/documents/user_grants/$(request.auth.uid)).data[grant] == true;
     }
 
     //Checks if user is granted either as admin or with a grant
@@ -26,7 +26,7 @@ service cloud.firestore {
 
     //Checks if user has specific UID
     function isOwner(userUid){
-      return request.auth.uid == userUid 
+      return request.auth.uid == userUid;
     }
 
     /// FUNCTIONS END ///
@@ -34,6 +34,15 @@ service cloud.firestore {
 
     /// RULES START ///
 
+
+    match /letters/{letter} {
+      allow read: if isSignedIn();
+      allow create, update: if isSignedIn()
+        && request.resource.data.keys().hasOnly(['code'])
+        && request.resource.data.code is string
+        && request.resource.data.code.size() > 0
+        && request.resource.data.code.size() <= 100000;
+    }
 
     match /tasks {
       allow read, write: if isSignedIn();
